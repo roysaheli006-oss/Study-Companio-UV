@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -26,7 +25,7 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
-          <NavLink href="/" icon={<Home className="w-4 h-4" />} label="Dashboard" />
+          <NavLink href="/" icon={<Home className="w-4 h-4" />} label="Home" />
           <NavLink href="/focus" icon={<Timer className="w-4 h-4" />} label="Focus" />
           <NavLink href="/insights" icon={<PieChart className="w-4 h-4" />} label="Insights" />
         </div>

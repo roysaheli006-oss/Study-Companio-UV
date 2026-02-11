@@ -1,4 +1,3 @@
-
 "use client";
 
 import { StatsDashboard } from '@/components/stats-dashboard';
@@ -9,7 +8,7 @@ export default function InsightsPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-8">
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        <ArrowLeft className="w-4 h-4" /> Back Home
       </Link>
       
       <div className="mb-10">
