@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { User as UserIcon, Shield, Palette, Loader2, LogOut, ArrowRight, Settings2, BookOpen } from 'lucide-react';
+import { User as UserIcon, Shield, Loader2, LogOut, ArrowRight, Settings2, BookOpen, Share2, Copy } from 'lucide-react';
 import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [shareLink, setShareLink] = useState('');
 
   useEffect(() => {
     if (profile) {
@@ -41,6 +42,12 @@ export default function ProfilePage() {
       setEmail(email || user.email || '');
     }
   }, [profile, user]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareLink(window.location.origin);
+    }
+  }, []);
 
   const handleUpdateProfile = () => {
     if (!userDocRef || !user?.uid) return;
@@ -69,6 +76,14 @@ export default function ProfilePage() {
     toast({
       title: "Logged Out",
       description: "You have been successfully signed out.",
+    });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    toast({
+      title: "Link Copied!",
+      description: "Prototype URL copied to your clipboard.",
     });
   };
 
@@ -112,7 +127,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Plan Manager */}
         <div className="lg:col-span-7 space-y-6">
           <div className="flex items-center gap-2 mb-2">
             <BookOpen className="w-6 h-6 text-indigo-600" />
@@ -121,7 +135,6 @@ export default function ProfilePage() {
           <StudyPlanManager />
         </div>
 
-        {/* Right Column: Settings & Profile */}
         <div className="lg:col-span-5 space-y-6">
           <div className="flex items-center gap-2 mb-2">
             <Settings2 className="w-6 h-6 text-slate-600" />
@@ -158,6 +171,23 @@ export default function ProfilePage() {
                 {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Save Changes
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Share2 className="w-5 h-5" /> Share Prototype
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground mb-2">Send this link to others so they can test your study companion.</p>
+              <div className="flex gap-2">
+                <Input readOnly value={shareLink} className="bg-slate-50" />
+                <Button variant="outline" size="icon" onClick={handleCopyLink}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
