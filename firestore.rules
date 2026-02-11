@@ -10,19 +10,9 @@
  * - /users/{userId}: Primary profile for each user.
  * - /users/{userId}/studySessions/{id}: Private study logs owned by the user.
  * - /users/{userId}/streaks/{id}: Private streak tracking owned by the user.
+ * - /users/{userId}/syllabus/{id}: Private syllabus tracking owned by the user.
+ * - /users/{userId}/assignments/{id}: Private assignment tracking owned by the user.
  * - /motivationalMessages/{id}: Global collection for public motivational content.
- * 
- * Key Security Decisions:
- * - Denormalization for Authorization: Critical ownership fields (like 'userId' or 'id') 
- *   are required to be present within documents and must match the document path. 
- *   This avoids expensive get() lookups during authorization.
- * - Relational Integrity: On creation, the rules enforce that internal document IDs 
- *   align with the authenticated user's ID. On updates, these IDs are immutable.
- * - Prototyping Mode: While authorization is strictly enforced based on identity, 
- *   the specific schema/types of content fields are not validated to allow for 
- *   rapid iterative development of features.
- * - Public Data: The motivationalMessages collection is publicly readable by anyone, 
- *   reflecting its purpose as a global utility.
  */
 
 rules_version = '2';
@@ -56,11 +46,7 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     /**
-     * @description Rules for UserProfile documents. Allows users to manage their own profile info (name, email, preferences).
-     * @path /users/{userId}
-     * @allow (create) if auth.uid == 'user_123' and data.id == 'user_123'
-     * @deny (update) if auth.uid == 'user_123' and request.resource.data.id == 'user_abc' (Attempting to change ID)
-     * @principle Ownership and Relational Integrity. Enforces that the internal 'id' matches the path and is immutable.
+     * @description Rules for UserProfile documents.
      */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
@@ -69,11 +55,7 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
 
       /**
-       * @description Rules for StudySessions. Private logs nested under the owner's path.
-       * @path /users/{userId}/studySessions/{studySessionId}
-       * @allow (list) if auth.uid == userId
-       * @deny (get) if auth.uid != userId
-       * @principle Hierarchical Access Control. Access is granted based on the parent path ownership.
+       * @description Rules for StudySessions.
        */
       match /studySessions/{studySessionId} {
         allow get, list: if isOwner(userId);
@@ -84,12 +66,28 @@ service cloud.firestore {
 
       /**
        * @description Rules for user streaks.
-       * @path /users/{userId}/streaks/{streakId}
-       * @allow (create) if auth.uid == userId and data.userId == userId
-       * @deny (update) if auth.uid == userId and trying to change the userId field
-       * @principle Path-based authorization with internal field consistency.
        */
       match /streaks/{streakId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for user syllabus topics.
+       */
+      match /syllabus/{syllabusId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Rules for user assignments.
+       */
+      match /assignments/{assignmentId} {
         allow get, list: if isOwner(userId);
         allow create: if isOwner(userId) && request.resource.data.userId == userId;
         allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
@@ -99,15 +97,10 @@ service cloud.firestore {
 
     /**
      * @description Rules for Motivational Messages. These are public records for all users to see.
-     * @path /motivationalMessages/{motivationalMessageId}
-     * @allow (get) if true (Publicly accessible)
-     * @deny (create) Always denied for standard users via rules.
-     * @principle Public Read with Restricted Writes. 
      */
     match /motivationalMessages/{motivationalMessageId} {
       allow get, list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'MotivationalMessage' entity is missing an 'ownerId' or 'authorId' field.
-      allow create, update, delete: if false; // TODO: Add admin or owner validation once the schema is updated.
+      allow create, update, delete: if false; 
     }
   }
 }
