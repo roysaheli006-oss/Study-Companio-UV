@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "study-low-stress",
+      "description": "Focused student in a bright room",
+      "imageUrl": "https://picsum.photos/seed/study1/800/600",
+      "imageHint": "focused study"
+    },
+    {
+      "id": "study-med-stress",
+      "description": "Student taking a break with coffee",
+      "imageUrl": "https://picsum.photos/seed/study2/800/600",
+      "imageHint": "study break"
+    },
+    {
+      "id": "study-high-stress",
+      "description": "Calming nature scene for relaxation",
+      "imageUrl": "https://picsum.photos/seed/study3/800/600",
+      "imageHint": "calm nature"
+    }
+  ]
+}
