@@ -6,12 +6,29 @@ import { MotivationFeed } from '@/components/motivation-feed';
 import { StudyRecommendations } from '@/components/study-recommendations';
 import { StreakSystem } from '@/components/streak-system';
 import { Card, CardContent } from '@/components/ui/card';
+import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: profile } = useDoc(userDocRef);
+
+  // Determine the display name: Profile name > Auth display name > Default
+  const displayName = profile?.fullName || user?.displayName || (user ? 'Scholar' : 'Alex');
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col mb-8">
-        <h1 className="text-4xl font-headline font-bold tracking-tight mb-2">Welcome back, Alex</h1>
+        <h1 className="text-4xl font-headline font-bold tracking-tight mb-2">
+          {isUserLoading ? 'Welcome back...' : `Welcome back, ${displayName}`}
+        </h1>
         <p className="text-muted-foreground text-lg">How are you feeling about your study goals today?</p>
       </div>
 
