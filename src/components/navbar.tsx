@@ -1,13 +1,17 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Timer, PieChart, User, Flame } from 'lucide-react';
+import { Home, Timer, PieChart, User, Flame, LogIn } from 'lucide-react';
 import { useStress } from './stress-context';
+import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
 
 export function Navbar() {
   const { streak, stressLevel } = useStress();
+  const { user, isUserLoading } = useUser();
   const pathname = usePathname();
 
   const stressColors = {
@@ -52,14 +56,26 @@ export function Navbar() {
             <Flame className="w-4 h-4 text-orange-500 fill-current" />
             <span className="font-bold text-sm">{streak} Day Streak</span>
           </div>
-          <Link href="/profile">
-            <div className={cn(
-              "w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-colors",
-              pathname === '/profile' ? "bg-primary border-primary" : "bg-slate-200 border-slate-300"
-            )}>
-               <User className={cn("w-5 h-5", pathname === '/profile' ? "text-white" : "text-slate-500")} />
-            </div>
-          </Link>
+          
+          {isUserLoading ? (
+            <div className="w-8 h-8 rounded-full bg-slate-200 animate-pulse" />
+          ) : user ? (
+            <Link href="/profile">
+              <div className={cn(
+                "w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-colors",
+                pathname === '/profile' ? "bg-primary border-primary" : "bg-slate-200 border-slate-300"
+              )}>
+                 <User className={cn("w-5 h-5", pathname === '/profile' ? "text-white" : "text-slate-500")} />
+              </div>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <LogIn className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>
