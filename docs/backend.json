@@ -1,0 +1,237 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile information and preferences.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "studyStyle": {
+          "type": "string",
+          "description": "The user's preferred study style (e.g., visual, auditory, kinesthetic)."
+        },
+        "subjects": {
+          "type": "array",
+          "description": "An array of subjects the user is studying.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stressHabits": {
+          "type": "string",
+          "description": "Description of users stress habits."
+        }
+      },
+      "required": [
+        "id",
+        "fullName",
+        "email"
+      ]
+    },
+    "StudySession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StudySession",
+      "type": "object",
+      "description": "Represents a single study session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the study session."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N StudySession)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the study session started.",
+          "format": "date-time"
+        },
+        "duration": {
+          "type": "number",
+          "description": "The duration of the study session in minutes."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject studied during the session."
+        },
+        "topic": {
+          "type": "string",
+          "description": "The specific topic studied during the session."
+        },
+        "mood": {
+          "type": "string",
+          "description": "The user's mood during the session."
+        },
+        "stressLevel": {
+          "type": "string",
+          "description": "The user's stress level during the session (Low, Moderate, High)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "timestamp",
+        "duration",
+        "subject"
+      ]
+    },
+    "Streak": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Streak",
+      "type": "object",
+      "description": "Represents a user's study streak.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the streak."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Streak)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date the streak started.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The date the streak ended (if the streak is not active).",
+          "format": "date-time"
+        },
+        "streakDays": {
+          "type": "number",
+          "description": "The number of consecutive days in the streak."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startDate",
+        "streakDays"
+      ]
+    },
+    "MotivationalMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MotivationalMessage",
+      "type": "object",
+      "description": "Represents a motivational message tailored to a specific stress level.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the motivational message."
+        },
+        "stressLevel": {
+          "type": "string",
+          "description": "The stress level this message is intended for (Low, Moderate, High)."
+        },
+        "message": {
+          "type": "string",
+          "description": "The motivational message text."
+        }
+      },
+      "required": [
+        "id",
+        "stressLevel",
+        "message"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Accessible only to the user with the matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/studySessions/{studySessionId}",
+        "definition": {
+          "entityName": "StudySession",
+          "schema": {
+            "$ref": "#/backend/entities/StudySession"
+          },
+          "description": "Stores study session data for a specific user. Accessible only to the user with the matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "studySessionId",
+              "description": "The unique identifier for the study session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/streaks/{streakId}",
+        "definition": {
+          "entityName": "Streak",
+          "schema": {
+            "$ref": "#/backend/entities/Streak"
+          },
+          "description": "Stores streak data for a specific user. Accessible only to the user with the matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "streakId",
+              "description": "The unique identifier for the streak."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/motivationalMessages/{motivationalMessageId}",
+        "definition": {
+          "entityName": "MotivationalMessage",
+          "schema": {
+            "$ref": "#/backend/entities/MotivationalMessage"
+          },
+          "description": "Stores motivational messages, globally accessible.",
+          "params": [
+            {
+              "name": "motivationalMessageId",
+              "description": "The unique identifier for the motivational message."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to ensure authorization independence, clarity, and scalability. User profiles and related data (study sessions, streaks) are stored under the `/users/{userId}` path to enforce ownership. The `MotivationalMessage` collection is globally accessible and requires no user-specific authorization.\n\nAuthorization Independence is achieved by avoiding `get()` calls in security rules. User profiles are stored directly under the `/users/{userId}` path. This eliminates the need to fetch parent document data for authorization. The structure also supports the required QAPs (Rules are not Filters). The segregation of data into user-owned paths (`/users/{userId}/...`) ensures that list operations can be secured efficiently by scoping the query to the user's ID, preventing unauthorized access to other users' data. For the `motivationalMessages` collection, there is no listing limitation since the data is public."
+  }
+}
