@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { User as UserIcon, Shield, Palette, Loader2, LogOut, ArrowRight } from 'lucide-react';
+import { User as UserIcon, Shield, Palette, Loader2, LogOut, ArrowRight, Settings2, BookOpen } from 'lucide-react';
 import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
+import { StudyPlanManager } from '@/components/study-plan-manager';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -46,6 +47,7 @@ export default function ProfilePage() {
 
     setIsSaving(true);
     const data = {
+      ...profile,
       id: user.uid,
       fullName,
       email,
@@ -55,10 +57,9 @@ export default function ProfilePage() {
     
     toast({
       title: "Profile Updated",
-      description: "Your changes have been saved successfully.",
+      description: "Your basic info has been saved.",
     });
     
-    // Optimistic reset of saving state
     setTimeout(() => setIsSaving(false), 500);
   };
 
@@ -99,100 +100,91 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
         <div>
-          <h1 className="text-4xl font-headline font-bold mb-2">Your Profile</h1>
-          <p className="text-muted-foreground">Manage your preferences and stress-aware settings.</p>
+          <h1 className="text-4xl font-headline font-bold mb-2">Settings</h1>
+          <p className="text-muted-foreground">Manage your profile, subjects, and study plan.</p>
         </div>
         <Button variant="outline" className="text-destructive hover:bg-destructive/10" onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" /> Sign Out
         </Button>
       </div>
 
-      <div className="space-y-6">
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserIcon className="w-5 h-5" /> Account Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input 
-                    id="fullName"
-                    placeholder="Your Name"
-                    value={fullName} 
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-               </div>
-               <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input 
-                    id="email"
-                    type="email"
-                    placeholder="email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-               </div>
-            </div>
-            <Button onClick={handleUpdateProfile} disabled={isSaving}>
-              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Update Profile
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Plan Manager */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="w-6 h-6 text-indigo-600" />
+            <h2 className="text-2xl font-headline font-bold">Study Plan</h2>
+          </div>
+          <StudyPlanManager />
+        </div>
 
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" /> Focus Protection
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Hard Lock Mode</Label>
-                <p className="text-sm text-muted-foreground">Force app focus and disable all but emergency notifications.</p>
+        {/* Right Column: Settings & Profile */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Settings2 className="w-6 h-6 text-slate-600" />
+            <h2 className="text-2xl font-headline font-bold">Account</h2>
+          </div>
+          
+          <Card className="border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <UserIcon className="w-5 h-5" /> Basic Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input 
+                  id="fullName"
+                  placeholder="Your Name"
+                  value={fullName} 
+                  onChange={(e) => setFullName(e.target.value)}
+                />
               </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Break Penalties</Label>
-                <p className="text-sm text-muted-foreground">Deduct streak points if session is abandoned while locked.</p>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input 
+                  id="email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <Switch />
-            </div>
-          </CardContent>
-        </Card>
+              <Button onClick={handleUpdateProfile} disabled={isSaving} className="w-full">
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Save Changes
+              </Button>
+            </CardContent>
+          </Card>
 
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="w-5 h-5" /> Stress UI Adaptation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Automatic Stress Colors</Label>
-                <p className="text-sm text-muted-foreground">Adjust interface colors based on your current stress selection.</p>
+          <Card className="border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Shield className="w-5 h-5" /> Preferences
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Hard Lock Mode</Label>
+                  <p className="text-xs text-muted-foreground">Force app focus during timer.</p>
+                </div>
+                <Switch defaultChecked />
               </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Mental Health Reminders</Label>
-                <p className="text-sm text-muted-foreground">Receive breathing and stretch tips when High Stress is detected.</p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Mental Health Reminders</Label>
+                  <p className="text-xs text-muted-foreground">Receive breathing tips when stressed.</p>
+                </div>
+                <Switch defaultChecked />
               </div>
-              <Switch defaultChecked />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

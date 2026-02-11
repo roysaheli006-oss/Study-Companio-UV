@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -41,6 +42,58 @@
         "email"
       ]
     },
+    "SyllabusItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SyllabusItem",
+      "type": "object",
+      "description": "Represents a specific topic within a subject's syllabus.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "isCompleted": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "userId", "subject", "topic", "isCompleted"]
+    },
+    "Assignment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Assignment",
+      "type": "object",
+      "description": "Represents a study assignment or task.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isCompleted": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "userId", "subject", "title", "isCompleted"]
+    },
     "StudySession": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StudySession",
@@ -53,7 +106,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N StudySession)"
+          "description": "Reference to UserProfile."
         },
         "timestamp": {
           "type": "string",
@@ -78,7 +131,7 @@
         },
         "stressLevel": {
           "type": "string",
-          "description": "The user's stress level during the session (Low, Moderate, High)."
+          "description": "The user's stress level during the session."
         }
       },
       "required": [
@@ -101,7 +154,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Streak)"
+          "description": "Reference to UserProfile."
         },
         "startDate": {
           "type": "string",
@@ -110,7 +163,7 @@
         },
         "endDate": {
           "type": "string",
-          "description": "The date the streak ended (if the streak is not active).",
+          "description": "The date the streak ended.",
           "format": "date-time"
         },
         "streakDays": {
@@ -166,13 +219,27 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile information. Accessible only to the user with the matching userId.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
+          "description": "Stores user profile information."
+        }
+      },
+      {
+        "path": "/users/{userId}/syllabus/{syllabusId}",
+        "definition": {
+          "entityName": "SyllabusItem",
+          "schema": {
+            "$ref": "#/backend/entities/SyllabusItem"
+          },
+          "description": "Stores syllabus topics for a specific user."
+        }
+      },
+      {
+        "path": "/users/{userId}/assignments/{assignmentId}",
+        "definition": {
+          "entityName": "Assignment",
+          "schema": {
+            "$ref": "#/backend/entities/Assignment"
+          },
+          "description": "Stores assignments for a specific user."
         }
       },
       {
@@ -182,17 +249,7 @@
           "schema": {
             "$ref": "#/backend/entities/StudySession"
           },
-          "description": "Stores study session data for a specific user. Accessible only to the user with the matching userId.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "studySessionId",
-              "description": "The unique identifier for the study session."
-            }
-          ]
+          "description": "Stores study session data."
         }
       },
       {
@@ -202,17 +259,7 @@
           "schema": {
             "$ref": "#/backend/entities/Streak"
           },
-          "description": "Stores streak data for a specific user. Accessible only to the user with the matching userId.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "streakId",
-              "description": "The unique identifier for the streak."
-            }
-          ]
+          "description": "Stores streak data."
         }
       },
       {
@@ -222,16 +269,9 @@
           "schema": {
             "$ref": "#/backend/entities/MotivationalMessage"
           },
-          "description": "Stores motivational messages, globally accessible.",
-          "params": [
-            {
-              "name": "motivationalMessageId",
-              "description": "The unique identifier for the motivational message."
-            }
-          ]
+          "description": "Stores motivational messages."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to ensure authorization independence, clarity, and scalability. User profiles and related data (study sessions, streaks) are stored under the `/users/{userId}` path to enforce ownership. The `MotivationalMessage` collection is globally accessible and requires no user-specific authorization.\n\nAuthorization Independence is achieved by avoiding `get()` calls in security rules. User profiles are stored directly under the `/users/{userId}` path. This eliminates the need to fetch parent document data for authorization. The structure also supports the required QAPs (Rules are not Filters). The segregation of data into user-owned paths (`/users/{userId}/...`) ensures that list operations can be secured efficiently by scoping the query to the user's ID, preventing unauthorized access to other users' data. For the `motivationalMessages` collection, there is no listing limitation since the data is public."
+    ]
   }
 }

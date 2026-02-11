@@ -6,8 +6,12 @@ import { MotivationFeed } from '@/components/motivation-feed';
 import { StudyRecommendations } from '@/components/study-recommendations';
 import { StreakSystem } from '@/components/streak-system';
 import { Card, CardContent } from '@/components/ui/card';
-import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
+import { Calendar, CheckCircle2, Clock } from 'lucide-react';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -20,8 +24,38 @@ export default function Home() {
 
   const { data: profile } = useDoc(userDocRef);
 
-  // Determine the display name: Profile name > Auth display name > Default
+  // Syllabus tracking for progress
+  const syllabusQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(collection(firestore, 'users', user.uid, 'syllabus'));
+  }, [firestore, user?.uid]);
+  const { data: syllabusItems } = useCollection(syllabusQuery);
+
+  // Assignments for upcoming goals
+  const assignmentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(collection(firestore, 'users', user.uid, 'assignments'));
+  }, [firestore, user?.uid]);
+  const { data: assignments } = useCollection(assignmentsQuery);
+
+  // Determine the display name
   const displayName = profile?.fullName || user?.displayName || (user ? 'Scholar' : 'Alex');
+
+  // Calculate progress stats
+  const totalTopics = syllabusItems?.length || 0;
+  const completedTopics = syllabusItems?.filter(i => i.isCompleted).length || 0;
+  const globalProgress = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+
+  // Group progress by subject
+  const subjectProgress = (profile?.subjects || []).map((subject: string) => {
+    const subjectTopics = syllabusItems?.filter(i => i.subject === subject) || [];
+    const total = subjectTopics.length;
+    const completed = subjectTopics.filter(i => i.isCompleted).length;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { subject, percent, total };
+  }).sort((a, b) => b.percent - a.percent);
+
+  const mainSubject = subjectProgress[0] || { subject: 'No subjects', percent: 0 };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -59,11 +93,18 @@ export default function Home() {
                <CardContent className="p-6 relative">
                   <div className="relative z-10">
                     <h3 className="font-headline font-bold text-xl mb-2">Subject Mastery</h3>
-                    <p className="text-indigo-100 text-sm mb-4">Biology is your focus today. You've mastered 68% of the curriculum.</p>
+                    <p className="text-indigo-100 text-sm mb-4">
+                      {mainSubject.percent > 0 
+                        ? `${mainSubject.subject} is your focus. You've mastered ${mainSubject.percent}% of the topics.`
+                        : "Start adding syllabus topics in your profile to track mastery!"
+                      }
+                    </p>
                     <div className="w-full bg-indigo-800 rounded-full h-2 mb-2">
-                       <div className="bg-white h-2 rounded-full w-[68%]"></div>
+                       <div className="bg-white h-2 rounded-full transition-all duration-1000" style={{ width: `${mainSubject.percent}%` }}></div>
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-wider">Level 12 Scholar</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                      {globalProgress >= 50 ? 'Advanced Scholar' : 'Novice Scholar'} • {globalProgress}% Global
+                    </span>
                   </div>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                </CardContent>
@@ -73,29 +114,40 @@ export default function Home() {
           <section>
              <Card className="border-none shadow-sm bg-white">
                <CardContent className="p-6">
-                  <h3 className="font-headline font-bold mb-4">Upcoming Goals</h3>
+                  <h3 className="font-headline font-bold mb-4 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-indigo-500" /> Upcoming Goals
+                  </h3>
                   <div className="space-y-4">
-                     <GoalItem label="Final Exam Prep" date="Next Friday" progress={40} />
-                     <GoalItem label="Biology Thesis" date="Dec 12" progress={15} />
+                    {(assignments || [])
+                      .filter(a => !a.isCompleted)
+                      .slice(0, 3)
+                      .map((assignment) => (
+                        <div key={assignment.id} className="group">
+                           <div className="flex justify-between text-sm mb-1">
+                            <div className="flex items-center gap-2">
+                              <Checkbox 
+                                checked={assignment.isCompleted}
+                                onCheckedChange={() => {
+                                  if (!firestore || !user?.uid) return;
+                                  const docRef = doc(firestore, 'users', user.uid, 'assignments', assignment.id);
+                                  updateDocumentNonBlocking(docRef, { isCompleted: true });
+                                }}
+                              />
+                              <span className="font-bold">{assignment.title}</span>
+                            </div>
+                            <span className="text-muted-foreground text-xs">{new Date(assignment.dueDate).toLocaleDateString()}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-[9px] uppercase font-bold">{assignment.subject}</Badge>
+                        </div>
+                    ))}
+                    {(!assignments || assignments.filter(a => !a.isCompleted).length === 0) && (
+                      <p className="text-sm text-muted-foreground italic">No pending tasks. Take a break!</p>
+                    )}
                   </div>
                </CardContent>
              </Card>
           </section>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function GoalItem({ label, date, progress }: { label: string; date: string; progress: number }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm">
-        <span className="font-bold">{label}</span>
-        <span className="text-muted-foreground">{date}</span>
-      </div>
-      <div className="w-full bg-slate-100 rounded-full h-1.5">
-         <div className="bg-primary h-1.5 rounded-full" style={{width: `${progress}%`}}></div>
       </div>
     </div>
   );
