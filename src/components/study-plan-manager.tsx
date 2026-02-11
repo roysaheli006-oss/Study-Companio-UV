@@ -65,9 +65,23 @@ export function StudyPlanManager() {
   const { data: assignments } = useCollection(assignmentsQuery);
 
   const handleAddSubject = () => {
-    if (!newSubject.trim() || !userDocRef || !profile) return;
-    const updatedSubjects = [...(profile.subjects || []), newSubject.trim()];
-    setDocumentNonBlocking(userDocRef, { ...profile, subjects: updatedSubjects }, { merge: true });
+    if (!newSubject.trim() || !userDocRef || !user?.uid) return;
+    
+    const currentSubjects = profile?.subjects || [];
+    // Prevent duplicates
+    if (currentSubjects.includes(newSubject.trim())) {
+      toast({ title: "Already exists", description: "This subject is already in your list.", variant: "destructive" });
+      return;
+    }
+
+    const updatedSubjects = [...currentSubjects, newSubject.trim()];
+    
+    setDocumentNonBlocking(userDocRef, { 
+      ...profile,
+      id: user.uid,
+      subjects: updatedSubjects 
+    }, { merge: true });
+    
     setNewSubject('');
     toast({ title: "Subject Added", description: `${newSubject} has been added to your list.` });
   };
@@ -155,7 +169,7 @@ export function StudyPlanManager() {
               </Badge>
             ))}
             {(!profile?.subjects || profile.subjects.length === 0) && (
-              <p className="text-sm text-muted-foreground">No subjects added yet.</p>
+              <p className="text-sm text-muted-foreground">No subjects added yet. Type a subject above and click +</p>
             )}
           </div>
         </CardContent>
