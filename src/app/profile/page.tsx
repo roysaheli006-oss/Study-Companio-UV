@@ -1,14 +1,83 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { User, Bell, Shield, Palette } from 'lucide-react';
+import { User as UserIcon, Shield, Palette, Loader2 } from 'lucide-react';
+import { useUser, useFirestore, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProfilePage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+
+  const { data: profile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.fullName || '');
+      setEmail(profile.email || '');
+    } else if (user) {
+      setFullName(fullName || user.displayName || '');
+      setEmail(email || user.email || '');
+    }
+  }, [profile, user]);
+
+  const handleUpdateProfile = () => {
+    if (!userDocRef || !user?.uid) return;
+
+    setIsSaving(true);
+    const data = {
+      id: user.uid,
+      fullName,
+      email,
+    };
+
+    setDocumentNonBlocking(userDocRef, data, { merge: true });
+    
+    toast({
+      title: "Profile Updated",
+      description: "Your changes have been saved successfully.",
+    });
+    
+    // Optimistic reset of saving state
+    setTimeout(() => setIsSaving(false), 500);
+  };
+
+  if (isUserLoading || isProfileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center max-w-xl">
+        <Card className="p-8">
+          <h2 className="text-2xl font-bold mb-4">Please sign in</h2>
+          <p className="text-muted-foreground mb-6">You need to be authenticated to view and manage your profile settings.</p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-10">
@@ -20,21 +89,35 @@ export default function ProfilePage() {
         <Card className="border-none shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" /> Account Details
+              <UserIcon className="w-5 h-5" /> Account Details
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input defaultValue="Alex Johnson" />
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input 
+                    id="fullName"
+                    placeholder="Your Name"
+                    value={fullName} 
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
                </div>
                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input defaultValue="alex@example.com" disabled />
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input 
+                    id="email"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                </div>
             </div>
-            <Button>Update Profile</Button>
+            <Button onClick={handleUpdateProfile} disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Update Profile
+            </Button>
           </CardContent>
         </Card>
 
